@@ -1,10 +1,12 @@
 package code.id.poke.ui
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.BrokenImage
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -62,15 +64,31 @@ fun PokemonDetailScreen(
                             .padding(16.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        val imageUrl = pokemon.sprites.other?.official_artwork?.front_default 
+                        val imageUrl = pokemon.sprites.other?.official_artwork?.front_default
                             ?: pokemon.sprites.front_default
-                        
-                        AsyncImage(
-                            model = imageUrl,
-                            contentDescription = pokemon.name,
-                            modifier = Modifier.size(200.dp),
-                            contentScale = ContentScale.Fit
-                        )
+
+                        Box(
+                            modifier = Modifier
+                                .size(200.dp)
+                                .background(
+                                    color = MaterialTheme.colorScheme.surfaceVariant,
+                                    shape = MaterialTheme.shapes.medium
+                                ),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            AsyncImage(
+                                model = imageUrl,
+                                contentDescription = pokemon.name,
+                                modifier = Modifier.size(200.dp),
+                                contentScale = ContentScale.Fit,
+                                onLoading = {
+                                    // Placeholder is shown via Box background
+                                },
+                                onError = {
+                                    // Error state handled
+                                }
+                            )
+                        }
 
                         Spacer(modifier = Modifier.height(16.dp))
 
@@ -114,8 +132,15 @@ fun PokemonDetailScreen(
                     }
                 }
                 is PokemonDetailUiState.Error -> {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(text = "Error: ${state.message}", color = MaterialTheme.colorScheme.error)
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier.padding(16.dp)
+                    ) {
+                        Text(
+                            text = "Error: ${state.error.message}",
+                            color = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.padding(bottom = 16.dp)
+                        )
                         Button(onClick = { viewModel.getPokemonDetail(pokemonName) }) {
                             Text("Retry")
                         }

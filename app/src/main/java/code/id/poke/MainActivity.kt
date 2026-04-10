@@ -1,6 +1,7 @@
 package code.id.poke
 
 import android.os.Bundle
+import android.view.View
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -21,11 +22,12 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountBox
 import androidx.compose.material.icons.filled.Home
-import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.platform.LocalView
 import code.id.poke.ui.auth.ProfileScreen
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.core.view.WindowCompat
 import code.id.poke.data.local.SessionManager
 import code.id.poke.ui.PokemonDetailScreen
 import code.id.poke.ui.PokemonListScreen
@@ -40,6 +42,10 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+
+        // Set status bar icons to dark color
+        WindowCompat.getInsetsController(window, window.decorView)?.isAppearanceLightStatusBars = true
+
         setContent {
             PokeCODEIDTheme {
                 AppNavigation()
@@ -149,18 +155,3 @@ enum class AppDestinations(
     PROFILE("Profile", Icons.Default.AccountBox),
 }
 
-@Composable
-fun Greeting(name: String, modifier: Modifier = Modifier) {
-    Text(
-        text = "Hello $name!",
-        modifier = modifier
-    )
-}
-
-@Preview(showBackground = true)
-@Composable
-fun GreetingPreview() {
-    PokeCODEIDTheme {
-        Greeting("Android")
-    }
-}

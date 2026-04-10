@@ -1,11 +1,13 @@
 package code.id.poke.ui
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -25,6 +27,7 @@ fun PokemonListScreen(
 ) {
     val pokemonItems = viewModel.pokemonPager.collectAsLazyPagingItems()
     var showSearchDialog by remember { mutableStateOf(false) }
+    val isRefreshing = pokemonItems.loadState.refresh is LoadState.Loading
 
     Scaffold(
         topBar = {
@@ -38,48 +41,52 @@ fun PokemonListScreen(
             )
         }
     ) { padding ->
-        Box(modifier = Modifier.fillMaxSize().padding(padding)) {
-            LazyColumn(
-                modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                items(count = pokemonItems.itemCount) { index ->
-                    pokemonItems[index]?.let { pokemon ->
-                        PokemonItem(
-                            pokemon = pokemon,
-                            onClick = { onPokemonClick(pokemon.name) }
-                        )
+        PullToRefreshBox(
+            isRefreshing = isRefreshing,
+            onRefresh = { pokemonItems.refresh() },
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+        ) {
+            Box(modifier = Modifier.fillMaxSize()) {
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    items(count = pokemonItems.itemCount) { index ->
+                        pokemonItems[index]?.let { pokemon ->
+                            PokemonItem(
+                                pokemon = pokemon,
+                                onClick = { onPokemonClick(pokemon.name) }
+                            )
+                        }
                     }
-                }
 
-                item {
-                    if (pokemonItems.loadState.append is LoadState.Loading) {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(16.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            CircularProgressIndicator()
+                    item {
+                        if (pokemonItems.loadState.append is LoadState.Loading) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(16.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                CircularProgressIndicator()
+                            }
                         }
                     }
                 }
-            }
 
-            if (pokemonItems.loadState.refresh is LoadState.Loading) {
-                CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
-            }
-
-            if (pokemonItems.loadState.refresh is LoadState.Error) {
-                val error = pokemonItems.loadState.refresh as LoadState.Error
-                Column(
-                    modifier = Modifier.align(Alignment.Center),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Text(text = "Error: ${error.error.localizedMessage}")
-                    Button(onClick = { pokemonItems.retry() }) {
-                        Text("Retry")
+                if (pokemonItems.loadState.refresh is LoadState.Error && !isRefreshing) {
+                    val error = pokemonItems.loadState.refresh as LoadState.Error
+                    Column(
+                        modifier = Modifier.align(Alignment.Center),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(text = "Error: ${error.error.localizedMessage}")
+                        Button(onClick = { pokemonItems.retry() }) {
+                            Text("Retry")
+                        }
                     }
                 }
             }
@@ -114,12 +121,28 @@ fun PokemonItem(
                 .fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            AsyncImage(
-                model = pokemon.imageUrl,
-                contentDescription = pokemon.name,
-                modifier = Modifier.size(80.dp),
-                contentScale = ContentScale.Fit
-            )
+            Box(
+                modifier = Modifier
+                    .size(80.dp)
+                    .background(
+                        color = MaterialTheme.colorScheme.surfaceVariant,
+                        shape = MaterialTheme.shapes.small
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                AsyncImage(
+                    model = pokemon.imageUrl,
+                    contentDescription = pokemon.name,
+                    modifier = Modifier.size(80.dp),
+                    contentScale = ContentScale.Fit,
+                    onLoading = {
+                        // Placeholder is shown via Box background
+                    },
+                    onError = {
+                        // Error state - show icon
+                    }
+                )
+            }
             Spacer(modifier = Modifier.width(16.dp))
             Text(
                 text = pokemon.name.replaceFirstChar { it.uppercase() },

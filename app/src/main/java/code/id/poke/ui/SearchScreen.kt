@@ -25,29 +25,29 @@ fun SearchDialog(
     viewModel: PokeViewModel
 ) {
     var query by remember { mutableStateOf("") }
-    var results by remember { mutableStateOf<List<PokemonResult>>(emptyList()) }
-    var isLoading by remember { mutableStateOf(false) }
+    val searchState by viewModel.searchState.collectAsState()
 
     LaunchedEffect(query) {
-        if (query.length < 2) {
-            results = emptyList()
+        if (query.isEmpty()) {
+            viewModel.clearSearch()
             return@LaunchedEffect
         }
-        
-        isLoading = true
-        delay(500)
-        
-        try {
-            results = viewModel.searchPokemonApi(query)
-        } catch (e: Exception) {
-            results = emptyList()
-        } finally {
-            isLoading = false
+
+        if (query.length < 2) {
+            return@LaunchedEffect
         }
+
+        delay(500)
+        viewModel.searchPokemon(query)
+    }
+
+    fun handleDismiss() {
+        viewModel.clearSearch()
+        onDismiss()
     }
 
     Dialog(
-        onDismissRequest = onDismiss,
+        onDismissRequest = { handleDismiss() },
         properties = DialogProperties(usePlatformDefaultWidth = false)
     ) {
         Surface(
@@ -73,12 +73,12 @@ fun SearchDialog(
                         )
                     },
                     navigationIcon = {
-                        IconButton(onClick = onDismiss) {
+                        IconButton(onClick = { handleDismiss() }) {
                             Icon(Icons.Default.Close, contentDescription = "Close")
                         }
                     },
                     actions = {
-                        if (isLoading) {
+                        if (searchState is SearchUiState.Loading) {
                             CircularProgressIndicator(
                                 modifier = Modifier.size(24.dp),
                                 strokeWidth = 2.dp
@@ -91,26 +91,64 @@ fun SearchDialog(
                     modifier = Modifier.fillMaxSize(),
                     contentPadding = PaddingValues(16.dp)
                 ) {
-                    items(results) { pokemon ->
-                        ListItem(
-                            headlineContent = { 
-                                Text(pokemon.name.replaceFirstChar { it.uppercase() }) 
-                            },
-                            modifier = Modifier.clickable { 
-                                onPokemonClick(pokemon.name)
-                                onDismiss()
+                    when (searchState) {
+                        is SearchUiState.Success -> {
+                            val results = (searchState as SearchUiState.Success).results
+                            items(results) { pokemon ->
+                                ListItem(
+                                    headlineContent = {
+                                        Text(pokemon.name.replaceFirstChar { it.uppercase() })
+                                    },
+                                    modifier = Modifier.clickable {
+                                        onPokemonClick(pokemon.name)
+                                        handleDismiss()
+                                    }
+                                )
+                                HorizontalDivider()
                             }
-                        )
-                        HorizontalDivider()
-                    }
-                    
-                    if (!isLoading && query.length >= 2 && results.isEmpty()) {
-                        item {
-                            Box(
-                                modifier = Modifier.fillMaxWidth().padding(32.dp),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text("No Pokemon found")
+                        }
+
+                        is SearchUiState.Error -> {
+                            item {
+                                Column(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(32.dp),
+                                    horizontalAlignment = Alignment.CenterHorizontally
+                                ) {
+                                    Text(
+                                        text = "Error: ${(searchState as SearchUiState.Error).error.message}",
+                                        color = MaterialTheme.colorScheme.error
+                                    )
+                                }
+                            }
+                        }
+
+                        is SearchUiState.Loading -> {
+                            item {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(32.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    CircularProgressIndicator()
+                                }
+                            }
+                        }
+
+                        SearchUiState.Idle -> {
+                            if (query.length >= 2) {
+                                item {
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(32.dp),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Text("No Pokemon found")
+                                    }
+                                }
                             }
                         }
                     }
