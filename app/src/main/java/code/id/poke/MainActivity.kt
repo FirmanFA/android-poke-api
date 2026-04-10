@@ -89,8 +89,8 @@ fun AppNavigation() {
                         popUpTo("main") { inclusive = true }
                     }
                 },
-                onPokemonClick = { pokemon ->
-                    navController.navigate("detail/${pokemon.name}")
+                onPokemonClick = { pokemonName ->
+                    navController.navigate("detail/$pokemonName")
                 }
             )
         }
@@ -107,7 +107,7 @@ fun AppNavigation() {
 @Composable
 fun PokeCODEIDApp(
     onLogout: () -> Unit,
-    onPokemonClick: (code.id.poke.data.local.PokemonEntity) -> Unit
+    onPokemonClick: (String) -> Unit
 ) {
     var currentDestination by rememberSaveable { mutableStateOf(AppDestinations.HOME) }
 

@@ -4,54 +4,54 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.paging.PagingData
 import androidx.paging.cachedIn
-import androidx.paging.filter
 import code.id.poke.data.local.PokemonEntity
 import code.id.poke.data.remote.PokemonDetailResponse
+import code.id.poke.data.remote.PokemonResult
 import code.id.poke.domain.repository.PokeRepository
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.debounce
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
+
+sealed class PokemonDetailUiState {
+    object Loading : PokemonDetailUiState()
+    data class Success(val data: PokemonDetailResponse) : PokemonDetailUiState()
+    data class Error(val message: String) : PokemonDetailUiState()
+}
 
 class PokeViewModel(
     private val repository: PokeRepository
 ) : ViewModel() {
 
-    private val _searchQuery = MutableStateFlow("")
-    val searchQuery: StateFlow<String> = _searchQuery.asStateFlow()
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val pokemonPager: Flow<PagingData<PokemonEntity>> = repository.getPokemonPager("")
+        .cachedIn(viewModelScope)
 
-    private val basePokeData: Flow<PagingData<PokemonEntity>> =
-        repository.getPokemonPager().cachedIn(viewModelScope)
+    private val _pokemonDetailState = MutableStateFlow<PokemonDetailUiState?>(null)
+    val pokemonDetailState: StateFlow<PokemonDetailUiState?> = _pokemonDetailState.asStateFlow()
 
-    @OptIn(FlowPreview::class, ExperimentalCoroutinesApi::class)
-    val pokemonPager: Flow<PagingData<PokemonEntity>> = _searchQuery
-        .debounce(300)
-        .flatMapLatest { query ->
-            basePokeData.map { pagingData ->
-                pagingData.filter { pokemon ->
-                    query.isEmpty() || pokemon.name.contains(query, ignoreCase = true)
-                }
-            }
+    suspend fun searchPokemonApi(query: String): List<PokemonResult> {
+        // Since PokeAPI doesn't have a partial search, we fetch a large chunk and filter
+        // In a real app, this would be a specific search endpoint
+        return try {
+            val response = repository.searchPokemonFromApi(query)
+            response
+        } catch (e: Exception) {
+            emptyList()
         }
-
-    private val _pokemonDetail = MutableStateFlow<Result<PokemonDetailResponse>?>(null)
-    val pokemonDetail: StateFlow<Result<PokemonDetailResponse>?> = _pokemonDetail.asStateFlow()
-
-    fun updateSearchQuery(query: String) {
-        _searchQuery.value = query
     }
 
     fun getPokemonDetail(name: String) {
         viewModelScope.launch {
-            _pokemonDetail.value = null // Reset before fetching
+            _pokemonDetailState.value = PokemonDetailUiState.Loading
             val result = repository.getPokemonDetail(name)
-            _pokemonDetail.value = result
+            _pokemonDetailState.value = result.fold(
+                onSuccess = { PokemonDetailUiState.Success(it) },
+                onFailure = { PokemonDetailUiState.Error(it.message ?: "Unknown Error") }
+            )
         }
     }
 }

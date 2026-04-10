@@ -4,58 +4,96 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Clear
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
+import androidx.paging.LoadState
 import androidx.paging.compose.collectAsLazyPagingItems
 import code.id.poke.data.local.PokemonEntity
 import coil3.compose.AsyncImage
 import org.koin.androidx.compose.koinViewModel
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PokemonListScreen(
-    onPokemonClick: (PokemonEntity) -> Unit,
+    onPokemonClick: (String) -> Unit,
     viewModel: PokeViewModel = koinViewModel()
 ) {
-    val searchQuery by viewModel.searchQuery.collectAsState()
     val pokemonItems = viewModel.pokemonPager.collectAsLazyPagingItems()
+    var showSearchDialog by remember { mutableStateOf(false) }
 
-    Column(modifier = Modifier.fillMaxSize()) {
-        TextField(
-            value = searchQuery,
-            onValueChange = { viewModel.updateSearchQuery(it) },
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            placeholder = { Text("Search Pokémon...") },
-            trailingIcon = {
-                if (searchQuery.isNotEmpty()) {
-                    IconButton(onClick = { viewModel.updateSearchQuery("") }) {
-                        Icon(Icons.Filled.Clear, contentDescription = "Clear search")
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Pokedex") },
+                actions = {
+                    IconButton(onClick = { showSearchDialog = true }) {
+                        Icon(Icons.Default.Search, contentDescription = "Search")
                     }
                 }
-            },
-            singleLine = true
-        )
+            )
+        }
+    ) { padding ->
+        Box(modifier = Modifier.fillMaxSize().padding(padding)) {
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(16.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                items(count = pokemonItems.itemCount) { index ->
+                    pokemonItems[index]?.let { pokemon ->
+                        PokemonItem(
+                            pokemon = pokemon,
+                            onClick = { onPokemonClick(pokemon.name) }
+                        )
+                    }
+                }
 
-        LazyColumn(
-            modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            items(count = pokemonItems.itemCount) { index ->
-                pokemonItems[index]?.let { pokemon ->
-                    PokemonItem(
-                        pokemon = pokemon,
-                        onClick = { onPokemonClick(pokemon) }
-                    )
+                item {
+                    if (pokemonItems.loadState.append is LoadState.Loading) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            CircularProgressIndicator()
+                        }
+                    }
+                }
+            }
+
+            if (pokemonItems.loadState.refresh is LoadState.Loading) {
+                CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+            }
+
+            if (pokemonItems.loadState.refresh is LoadState.Error) {
+                val error = pokemonItems.loadState.refresh as LoadState.Error
+                Column(
+                    modifier = Modifier.align(Alignment.Center),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(text = "Error: ${error.error.localizedMessage}")
+                    Button(onClick = { pokemonItems.retry() }) {
+                        Text("Retry")
+                    }
                 }
             }
         }
+    }
+
+    if (showSearchDialog) {
+        SearchDialog(
+            onDismiss = { showSearchDialog = false },
+            onPokemonClick = { name ->
+                onPokemonClick(name)
+            },
+            viewModel = viewModel
+        )
     }
 }
 

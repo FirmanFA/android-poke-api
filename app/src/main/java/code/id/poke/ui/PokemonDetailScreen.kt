@@ -25,7 +25,7 @@ fun PokemonDetailScreen(
     onBackClick: () -> Unit,
     viewModel: PokeViewModel = koinViewModel()
 ) {
-    val detailResult by viewModel.pokemonDetail.collectAsState()
+    val uiState by viewModel.pokemonDetailState.collectAsState()
 
     LaunchedEffect(pokemonName) {
         viewModel.getPokemonDetail(pokemonName)
@@ -49,67 +49,80 @@ fun PokemonDetailScreen(
                 .padding(innerPadding),
             contentAlignment = Alignment.Center
         ) {
-            detailResult?.onSuccess { pokemon ->
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .verticalScroll(rememberScrollState())
-                        .padding(16.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    val imageUrl = pokemon.sprites.other?.official_artwork?.front_default 
-                        ?: pokemon.sprites.front_default
-                    
-                    AsyncImage(
-                        model = imageUrl,
-                        contentDescription = pokemon.name,
-                        modifier = Modifier.size(200.dp),
-                        contentScale = ContentScale.Fit
-                    )
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    Text(
-                        text = pokemon.name.replaceFirstChar { it.uppercase() },
-                        style = MaterialTheme.typography.headlineMedium,
-                        fontWeight = FontWeight.Bold
-                    )
-
-                    Spacer(modifier = Modifier.height(24.dp))
-
-                    Card(
-                        modifier = Modifier.fillMaxWidth()
+            when (val state = uiState) {
+                is PokemonDetailUiState.Loading -> {
+                    CircularProgressIndicator()
+                }
+                is PokemonDetailUiState.Success -> {
+                    val pokemon = state.data
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .verticalScroll(rememberScrollState())
+                            .padding(16.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        Column(modifier = Modifier.padding(16.dp)) {
-                            Text(
-                                text = "Abilities",
-                                style = MaterialTheme.typography.titleLarge,
-                                fontWeight = FontWeight.SemiBold
-                            )
-                            Spacer(modifier = Modifier.height(8.dp))
-                            pokemon.abilities.forEach { abilitySlot ->
+                        val imageUrl = pokemon.sprites.other?.official_artwork?.front_default 
+                            ?: pokemon.sprites.front_default
+                        
+                        AsyncImage(
+                            model = imageUrl,
+                            contentDescription = pokemon.name,
+                            modifier = Modifier.size(200.dp),
+                            contentScale = ContentScale.Fit
+                        )
+
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        Text(
+                            text = pokemon.name.replaceFirstChar { it.uppercase() },
+                            style = MaterialTheme.typography.headlineMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+
+                        Spacer(modifier = Modifier.height(24.dp))
+
+                        Card(
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column(modifier = Modifier.padding(16.dp)) {
                                 Text(
-                                    text = "• ${abilitySlot.ability.name.replaceFirstChar { it.uppercase() }}",
-                                    style = MaterialTheme.typography.bodyLarge,
-                                    modifier = Modifier.padding(vertical = 2.dp)
+                                    text = "Abilities",
+                                    style = MaterialTheme.typography.titleLarge,
+                                    fontWeight = FontWeight.SemiBold
                                 )
+                                Spacer(modifier = Modifier.height(8.dp))
+                                pokemon.abilities.forEach { abilitySlot ->
+                                    Text(
+                                        text = "• ${abilitySlot.ability.name.replaceFirstChar { it.uppercase() }}",
+                                        style = MaterialTheme.typography.bodyLarge,
+                                        modifier = Modifier.padding(vertical = 2.dp)
+                                    )
+                                }
                             }
                         }
-                    }
 
-                    Spacer(modifier = Modifier.height(16.dp))
+                        Spacer(modifier = Modifier.height(16.dp))
 
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceEvenly
-                    ) {
-                        InfoCard(label = "Height", value = "${pokemon.height / 10.0} m")
-                        InfoCard(label = "Weight", value = "${pokemon.weight / 10.0} kg")
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceEvenly
+                        ) {
+                            InfoCard(label = "Height", value = "${pokemon.height / 10.0} m")
+                            InfoCard(label = "Weight", value = "${pokemon.weight / 10.0} kg")
+                        }
                     }
                 }
-            }?.onFailure {
-                Text(text = "Error loading details: ${it.message}")
-            } ?: CircularProgressIndicator()
+                is PokemonDetailUiState.Error -> {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(text = "Error: ${state.message}", color = MaterialTheme.colorScheme.error)
+                        Button(onClick = { viewModel.getPokemonDetail(pokemonName) }) {
+                            Text("Retry")
+                        }
+                    }
+                }
+                null -> { /* Initial state */ }
+            }
         }
     }
 }

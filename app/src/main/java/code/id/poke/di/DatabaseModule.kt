@@ -16,4 +16,5 @@ val databaseModule = module {
 
     single { get<AppDatabase>().pokemonDao() }
     single { get<AppDatabase>().userDao() }
+    single { get<AppDatabase>().remoteKeyDao() }
 }
