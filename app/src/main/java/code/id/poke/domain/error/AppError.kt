@@ -10,17 +10,11 @@ sealed class AppError : Exception() {
     data class UnknownError(override val message: String = "An unexpected error occurred") : AppError()
 
     companion object {
-        fun from(throwable: Throwable): AppError {
-            return when {
-                throwable.message?.contains("timeout", ignoreCase = true) == true -> {
-                    TimeoutError()
-                }
-                throwable.message?.contains("failed to parse", ignoreCase = true) == true -> {
-                    ParseError()
-                }
-                throwable is AppError -> throwable
-                else -> UnknownError(throwable.message ?: "Unknown error")
-            }
+        fun from(throwable: Throwable): AppError = when {
+            throwable is AppError -> throwable
+            throwable.message?.contains("timeout", ignoreCase = true) == true -> TimeoutError()
+            throwable.message?.contains("failed to parse", ignoreCase = true) == true -> ParseError()
+            else -> UnknownError(throwable.message ?: "Unknown error")
         }
     }
 }

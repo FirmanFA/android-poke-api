@@ -1,7 +1,6 @@
 package code.id.poke
 
 import android.os.Bundle
-import android.view.View
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -22,30 +21,30 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountBox
 import androidx.compose.material.icons.filled.Home
-import androidx.compose.ui.platform.LocalView
-import code.id.poke.ui.auth.ProfileScreen
+import androidx.core.view.WindowCompat
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import androidx.core.view.WindowCompat
-import code.id.poke.data.local.SessionManager
+import androidx.navigation.toRoute
+import code.id.poke.ui.MainViewModel
 import code.id.poke.ui.PokemonDetailScreen
 import code.id.poke.ui.PokemonListScreen
 import code.id.poke.ui.auth.AuthViewModel
 import code.id.poke.ui.auth.LoginScreen
+import code.id.poke.ui.auth.ProfileScreen
 import code.id.poke.ui.auth.RegisterScreen
+import code.id.poke.ui.navigation.DetailRoute
+import code.id.poke.ui.navigation.LoginRoute
+import code.id.poke.ui.navigation.MainRoute
+import code.id.poke.ui.navigation.RegisterRoute
 import code.id.poke.ui.theme.PokeCODEIDTheme
 import org.koin.androidx.compose.koinViewModel
-import org.koin.compose.koinInject
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-
-        // Set status bar icons to dark color
         WindowCompat.getInsetsController(window, window.decorView)?.isAppearanceLightStatusBars = true
-
         setContent {
             PokeCODEIDTheme {
                 AppNavigation()
@@ -56,54 +55,47 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun AppNavigation() {
+    val mainViewModel: MainViewModel = koinViewModel()
     val navController = rememberNavController()
-    val sessionManager: SessionManager = koinInject()
-    val authViewModel: AuthViewModel = koinViewModel()
-
-    val startDestination = if (sessionManager.isLoggedIn()) "main" else "login"
+    val startDestination = if (mainViewModel.isLoggedIn) MainRoute else LoginRoute
 
     NavHost(navController = navController, startDestination = startDestination) {
-        composable("login") {
+        composable<LoginRoute> {
             LoginScreen(
                 onLoginSuccess = {
-                    navController.navigate("main") {
-                        popUpTo("login") { inclusive = true }
+                    navController.navigate(MainRoute) {
+                        popUpTo<LoginRoute> { inclusive = true }
                     }
                 },
-                onNavigateToRegister = {
-                    navController.navigate("register")
-                }
+                onNavigateToRegister = { navController.navigate(RegisterRoute) }
             )
         }
-        composable("register") {
+        composable<RegisterRoute> {
             RegisterScreen(
                 onRegisterSuccess = {
-                    navController.navigate("login") {
-                        popUpTo("register") { inclusive = true }
+                    navController.navigate(LoginRoute) {
+                        popUpTo<RegisterRoute> { inclusive = true }
                     }
                 },
-                onNavigateToLogin = {
-                    navController.navigate("login")
-                }
+                onNavigateToLogin = { navController.navigate(LoginRoute) }
             )
         }
-        composable("main") {
+        composable<MainRoute> {
+            val authViewModel: AuthViewModel = koinViewModel()
             PokeCODEIDApp(
                 onLogout = {
                     authViewModel.logout()
-                    navController.navigate("login") {
-                        popUpTo("main") { inclusive = true }
+                    navController.navigate(LoginRoute) {
+                        popUpTo<MainRoute> { inclusive = true }
                     }
                 },
-                onPokemonClick = { pokemonName ->
-                    navController.navigate("detail/$pokemonName")
-                }
+                onPokemonClick = { name -> navController.navigate(DetailRoute(name)) }
             )
         }
-        composable("detail/{name}") { backStackEntry ->
-            val pokemonName = backStackEntry.arguments?.getString("name") ?: ""
+        composable<DetailRoute> { backStackEntry ->
+            val route = backStackEntry.toRoute<DetailRoute>()
             PokemonDetailScreen(
-                pokemonName = pokemonName,
+                pokemonName = route.name,
                 onBackClick = { navController.popBackStack() }
             )
         }
@@ -121,17 +113,10 @@ fun PokeCODEIDApp(
         navigationSuiteItems = {
             AppDestinations.entries.forEach {
                 item(
-                    icon = {
-                        Icon(
-                            imageVector = it.icon,
-                            contentDescription = it.label
-                        )
-                    },
+                    icon = { Icon(imageVector = it.icon, contentDescription = it.label) },
                     label = { Text(it.label) },
                     selected = it == currentDestination,
-                    onClick = {
-                        currentDestination = it
-                    }
+                    onClick = { currentDestination = it }
                 )
             }
         }
@@ -147,11 +132,7 @@ fun PokeCODEIDApp(
     }
 }
 
-enum class AppDestinations(
-    val label: String,
-    val icon: ImageVector,
-) {
+enum class AppDestinations(val label: String, val icon: ImageVector) {
     HOME("Home", Icons.Default.Home),
     PROFILE("Profile", Icons.Default.AccountBox),
 }
-

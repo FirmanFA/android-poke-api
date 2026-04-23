@@ -1,9 +1,10 @@
 package code.id.poke.domain.repository
 
-import code.id.poke.data.local.UserEntity
+import code.id.poke.domain.model.User
+import code.id.poke.domain.model.UserCredentials
 
 interface UserRepository {
-    suspend fun register(user: UserEntity): Result<Unit>
-    suspend fun login(email: String, password: String): Result<UserEntity>
-    suspend fun getUserByEmail(email: String): UserEntity?
+    suspend fun register(name: String, email: String, passwordHash: String, salt: String): Result<Unit>
+    suspend fun getUserCredentials(email: String): UserCredentials?
+    suspend fun getUserByEmail(email: String): User?
 }

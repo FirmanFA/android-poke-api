@@ -14,7 +14,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
-import code.id.poke.data.remote.PokemonResult
 import kotlinx.coroutines.delay
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -22,7 +21,7 @@ import kotlinx.coroutines.delay
 fun SearchDialog(
     onDismiss: () -> Unit,
     onPokemonClick: (String) -> Unit,
-    viewModel: PokeViewModel
+    viewModel: PokemonListViewModel
 ) {
     var query by remember { mutableStateOf("") }
     val searchState by viewModel.searchState.collectAsState()
@@ -32,13 +31,9 @@ fun SearchDialog(
             viewModel.clearSearch()
             return@LaunchedEffect
         }
-
-        if (query.length < 2) {
-            return@LaunchedEffect
-        }
-
+        if (query.length < 2) return@LaunchedEffect
         delay(500)
-        viewModel.searchPokemon(query)
+        viewModel.search(query)
     }
 
     fun handleDismiss() {

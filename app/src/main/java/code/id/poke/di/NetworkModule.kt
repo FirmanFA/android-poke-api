@@ -24,14 +24,13 @@ val networkModule = module {
             level = HttpLoggingInterceptor.Level.BODY
         }
 
-        val certificatePinner = CertificatePinner.Builder()
-            .add("pokeapi.co", "sha256/U3Ge6NsuKgffuoN8MYjsfMiwMDa3Q1ght4Dl7113lg4=")
-            .add("pokeapi.co", "sha256/47DEQpj8HBSa+/TImW+5JCeuQeRkm5NMpJWZG3hSuFU=")
-            .build()
+//        val certificatePinner = CertificatePinner.Builder()
+//            .add("pokeapi.co", "sha256/U3Ge6NsuKgffuoN8MYjsfMiwMDa3Q1ght4Dl7113lg4=")
+//            .add("pokeapi.co", "sha256/47DEQpj8HBSa+/TImW+5JCeuQeRkm5NMpJWZG3hSuFU=")
+//            .build()
 
         OkHttpClient.Builder()
             .addInterceptor(logging)
-            .certificatePinner(certificatePinner)
             .connectTimeout(30, TimeUnit.SECONDS)
             .readTimeout(30, TimeUnit.SECONDS)
             .writeTimeout(30, TimeUnit.SECONDS)

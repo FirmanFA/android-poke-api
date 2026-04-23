@@ -1,5 +1,6 @@
 [versions]
 agp = "9.1.0"
+kotlinxSerializationJson = "1.8.0"
 coilCompose = "3.4.0"
 coreKtx = "1.18.0"
 junit = "4.13.2"
@@ -66,7 +67,10 @@ androidx-paging-compose = { group = "androidx.paging", name = "paging-compose", 
 koin-android = { group = "io.insert-koin", name = "koin-android", version.ref = "koin" }
 koin-androidx-compose = { group = "io.insert-koin", name = "koin-androidx-compose", version.ref = "koin" }
 
+kotlinx-serialization-json = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version.ref = "kotlinxSerializationJson" }
+
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
+kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }

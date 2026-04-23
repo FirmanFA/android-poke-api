@@ -5,13 +5,9 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.BrokenImage
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
@@ -25,12 +21,12 @@ import org.koin.androidx.compose.koinViewModel
 fun PokemonDetailScreen(
     pokemonName: String,
     onBackClick: () -> Unit,
-    viewModel: PokeViewModel = koinViewModel()
+    viewModel: PokemonDetailViewModel = koinViewModel()
 ) {
-    val uiState by viewModel.pokemonDetailState.collectAsState()
+    val uiState by viewModel.uiState.collectAsState()
 
     LaunchedEffect(pokemonName) {
-        viewModel.getPokemonDetail(pokemonName)
+        viewModel.load(pokemonName)
     }
 
     Scaffold(
@@ -39,7 +35,7 @@ fun PokemonDetailScreen(
                 title = { Text(pokemonName.replaceFirstChar { it.uppercase() }) },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 }
             )
@@ -52,9 +48,8 @@ fun PokemonDetailScreen(
             contentAlignment = Alignment.Center
         ) {
             when (val state = uiState) {
-                is PokemonDetailUiState.Loading -> {
-                    CircularProgressIndicator()
-                }
+                is PokemonDetailUiState.Loading -> CircularProgressIndicator()
+
                 is PokemonDetailUiState.Success -> {
                     val pokemon = state.data
                     Column(
@@ -64,9 +59,6 @@ fun PokemonDetailScreen(
                             .padding(16.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        val imageUrl = pokemon.sprites.other?.official_artwork?.front_default
-                            ?: pokemon.sprites.front_default
-
                         Box(
                             modifier = Modifier
                                 .size(200.dp)
@@ -77,16 +69,10 @@ fun PokemonDetailScreen(
                             contentAlignment = Alignment.Center
                         ) {
                             AsyncImage(
-                                model = imageUrl,
+                                model = pokemon.imageUrl,
                                 contentDescription = pokemon.name,
                                 modifier = Modifier.size(200.dp),
-                                contentScale = ContentScale.Fit,
-                                onLoading = {
-                                    // Placeholder is shown via Box background
-                                },
-                                onError = {
-                                    // Error state handled
-                                }
+                                contentScale = ContentScale.Fit
                             )
                         }
 
@@ -100,9 +86,7 @@ fun PokemonDetailScreen(
 
                         Spacer(modifier = Modifier.height(24.dp))
 
-                        Card(
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
+                        Card(modifier = Modifier.fillMaxWidth()) {
                             Column(modifier = Modifier.padding(16.dp)) {
                                 Text(
                                     text = "Abilities",
@@ -110,9 +94,9 @@ fun PokemonDetailScreen(
                                     fontWeight = FontWeight.SemiBold
                                 )
                                 Spacer(modifier = Modifier.height(8.dp))
-                                pokemon.abilities.forEach { abilitySlot ->
+                                pokemon.abilities.forEach { ability ->
                                     Text(
-                                        text = "• ${abilitySlot.ability.name.replaceFirstChar { it.uppercase() }}",
+                                        text = "• ${ability.replaceFirstChar { it.uppercase() }}",
                                         style = MaterialTheme.typography.bodyLarge,
                                         modifier = Modifier.padding(vertical = 2.dp)
                                     )
@@ -131,6 +115,7 @@ fun PokemonDetailScreen(
                         }
                     }
                 }
+
                 is PokemonDetailUiState.Error -> {
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
@@ -141,12 +126,11 @@ fun PokemonDetailScreen(
                             color = MaterialTheme.colorScheme.error,
                             modifier = Modifier.padding(bottom = 16.dp)
                         )
-                        Button(onClick = { viewModel.getPokemonDetail(pokemonName) }) {
+                        Button(onClick = { viewModel.load(pokemonName) }) {
                             Text("Retry")
                         }
                     }
                 }
-                null -> { /* Initial state */ }
             }
         }
     }
@@ -154,9 +138,7 @@ fun PokemonDetailScreen(
 
 @Composable
 fun InfoCard(label: String, value: String) {
-    Card(
-        modifier = Modifier.padding(8.dp)
-    ) {
+    Card(modifier = Modifier.padding(8.dp)) {
         Column(
             modifier = Modifier.padding(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally

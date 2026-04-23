@@ -15,7 +15,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import androidx.paging.LoadState
 import androidx.paging.compose.collectAsLazyPagingItems
-import code.id.poke.data.local.PokemonEntity
+import code.id.poke.domain.model.Pokemon
 import coil3.compose.AsyncImage
 import org.koin.androidx.compose.koinViewModel
 
@@ -23,7 +23,7 @@ import org.koin.androidx.compose.koinViewModel
 @Composable
 fun PokemonListScreen(
     onPokemonClick: (String) -> Unit,
-    viewModel: PokeViewModel = koinViewModel()
+    viewModel: PokemonListViewModel = koinViewModel()
 ) {
     val pokemonItems = viewModel.pokemonPager.collectAsLazyPagingItems()
     var showSearchDialog by remember { mutableStateOf(false) }
@@ -106,7 +106,7 @@ fun PokemonListScreen(
 
 @Composable
 fun PokemonItem(
-    pokemon: PokemonEntity,
+    pokemon: Pokemon,
     onClick: () -> Unit
 ) {
     Card(
@@ -134,13 +134,7 @@ fun PokemonItem(
                     model = pokemon.imageUrl,
                     contentDescription = pokemon.name,
                     modifier = Modifier.size(80.dp),
-                    contentScale = ContentScale.Fit,
-                    onLoading = {
-                        // Placeholder is shown via Box background
-                    },
-                    onError = {
-                        // Error state - show icon
-                    }
+                    contentScale = ContentScale.Fit
                 )
             }
             Spacer(modifier = Modifier.width(16.dp))
